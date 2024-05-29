@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/rmarku/ltp_api/internal/entities"
 )
 
 type DataSourceKraken struct {
@@ -33,7 +35,7 @@ func NewKraken(uri string) *DataSourceKraken {
 	return &DataSourceKraken{uri: uri, client: &http.Client{}}
 }
 
-func (k *DataSourceKraken) GetData(ctx context.Context, pair string) (*LTP, error) {
+func (k *DataSourceKraken) GetData(ctx context.Context, pair string) (*entities.LTP, error) {
 	var response krakenResponse
 
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, k.uri, nil)
@@ -63,10 +65,15 @@ func (k *DataSourceKraken) GetData(ctx context.Context, pair string) (*LTP, erro
 		return nil, errors.Join(ErrKrakenRequest, ErrRequestFailed)
 	}
 
-	amount, err := strconv.ParseFloat(response.Result[pair].Data[0], 64)
+	data, ok := response.Result[pair]
+	if !ok {
+		return nil, errors.Join(ErrKrakenRequest, errors.New("pair not found"))
+	}
+
+	amount, err := strconv.ParseFloat(data.Data[0], 64)
 	if err != nil {
 		return nil, errors.Join(err, ErrRequestFailed)
 	}
 
-	return &LTP{Pair: pair, Amount: amount}, nil
+	return &entities.LTP{Pair: pair, Amount: amount}, nil
 }

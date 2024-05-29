@@ -4,15 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
+	"github.com/rmarku/ltp_api/internal/entities"
 )
 
 type DataSource interface {
-	GetData(ctx context.Context, pair string) (*LTP, error)
-}
-
-type LTP struct {
-	Pair   string  `json:"pair"`
-	Amount float64 `json:"amount"`
+	GetData(ctx context.Context, pair string) (*entities.LTP, error)
 }
 
 type HTTPClient interface {

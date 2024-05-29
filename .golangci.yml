@@ -3,24 +3,18 @@ run:
   tests: true
   timeout: 5m
   fast: false
-  go: '1.22'
+  go: "1.22"
 output:
   sort-results: true
 linters:
   enable-all: true
   disable:
-    # # we dont like
-    - bodyclose # TODO: we should fix these linter problems and enable it.
-    - godox # We use TODO, FIXME, etc to denote future work to do
-    - goimports # We use TODO, FIXME, etc to denote future work to do
-    - gosec # TODO: we should add this.
+    - goimports
     - gofumpt # TODO: very good but it has conflicts with gci others
-    - depguard # TODO: someday we should disallow to add of any dependencies
-    - exhaustruct # we sometimes use the default values in structs
-    - testpackage # tests are on the same packages
-    - funlen # we like long functions names
-    - varnamelen # we sometimes want tiny name for variables
-    - ireturn # some times its good to return an interface
+    - depguard
+    - exhaustruct
+    - testpackage
+    - varnamelen # I like sometimes want tiny name for variables
     - musttag
     - gomoddirectives
 
@@ -52,7 +46,7 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/Wilab-io)
+      - prefix(github.com/rmarku)
   govet:
     enable-all: true
     disable:
@@ -138,22 +132,22 @@ linters-settings:
       - name: redefines-builtin-id # recommended
       - name: string-format # we like
         arguments:
-          - - 'logger.Debug'
+          - - "logger.Debug"
             - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
             - must not start with a capital letter
-          - - 'logger.Info'
+          - - "logger.Info"
             - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
             - must not start with a capital letter
-          - - 'logger.Warn'
+          - - "logger.Warn"
             - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
             - must not start with a capital letter
-          - - 'logger.Error'
+          - - "logger.Error"
             - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
             - must not start with a capital letter
-          - - 'logger.Fatal'
+          - - "logger.Fatal"
             - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
             - must not start with a capital letter
-          - - 'logger.Panic'
+          - - "logger.Panic"
             - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
             - must not start with a capital letter
       - name: string-of-int # under test

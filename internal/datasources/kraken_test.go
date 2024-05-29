@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/rmarku/ltp_api/internal/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +19,7 @@ func TestGetData(t *testing.T) {
 	tests := []struct {
 		mockError    error
 		mockResponse *http.Response
-		expected     *LTP
+		expected     *entities.LTP
 		name         string
 		pair         string
 		expectError  bool
@@ -35,7 +36,7 @@ func TestGetData(t *testing.T) {
 					}`),
 				),
 			},
-			expected:    &LTP{Pair: "XBTUSD", Amount: 50000.0},
+			expected:    &entities.LTP{Pair: "XBTUSD", Amount: 50000.0},
 			expectError: false,
 		},
 		{
