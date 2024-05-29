@@ -17,8 +17,12 @@ func rootHandler(c *gin.Context) {
 	c.String(http.StatusOK, "Welcome Gin Server")
 }
 func main() {
+
+
 	router := gin.Default()
 	router.GET("/", rootHandler)
+
+	
 
 	price, err := getTicket("BTC/USD")
 	if err != nil {
@@ -32,7 +36,6 @@ func main() {
 	}
 
 	go func() {
-		// conexiones de servicio
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}

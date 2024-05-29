@@ -1,0 +1,181 @@
+run:
+  allow-parallel-runners: true
+  tests: true
+  timeout: 5m
+  fast: false
+  go: '1.22'
+output:
+  sort-results: true
+linters:
+  enable-all: true
+  disable:
+    # # we dont like
+    - bodyclose # TODO: we should fix these linter problems and enable it.
+    - godox # We use TODO, FIXME, etc to denote future work to do
+    - goimports # We use TODO, FIXME, etc to denote future work to do
+    - gosec # TODO: we should add this.
+    - gofumpt # TODO: very good but it has conflicts with gci others
+    - depguard # TODO: someday we should disallow to add of any dependencies
+    - exhaustruct # we sometimes use the default values in structs
+    - testpackage # tests are on the same packages
+    - funlen # we like long functions names
+    - varnamelen # we sometimes want tiny name for variables
+    - ireturn # some times its good to return an interface
+    - musttag
+    - gomoddirectives
+
+    # DEPRECATED
+    - deadcode # replaced by unused
+    - varcheck # replaced by unused
+    - maligned # replaced by govet 'fieldalignment'
+    - scopelint # replaced by exportloopref
+    - structcheck # replaced by unused
+    - nosnakecase # replaced by revive(var-naming)
+    - golint # replaced by revive
+    - ifshort # deprecated
+    - interfacer # deprecated
+    - exhaustivestruct # replaced by exhaustruct
+
+issues:
+  max-same-issues: 0
+  include:
+    []
+    # - 'EXC0012' # We want to have documentation for exported functions
+    # - 'EXC0015' # We want to have documentation for packages
+
+linters-settings:
+  goconst:
+    ignore-tests: true
+  gomnd:
+    ignored-files: config.go
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/Wilab-io)
+  govet:
+    enable-all: true
+    disable:
+      - shadow
+
+  loggercheck:
+    # Allow check for the "sugar logger" from go.uber.org/zap library.
+    # Default: true
+    zap: true
+    # Require all logging keys to be inlined constant strings.
+    # Default: false
+    require-string-key: true
+    # Require printf-like format specifier (%s, %d for example) not present.
+    # Default: false
+    no-printf-like: true
+    # List of custom rules to check against, where each rule is a single logger pattern, useful for wrapped loggers.
+    # For example: https://github.com/timonwong/loggercheck/blob/7395ab86595781e33f7afba27ad7b55e6956ebcd/testdata/custom-rules.txt
+    # Default: empty
+    rules:
+      - (libs/utils/wports.Logger).Debug # Rules for our Logger port
+      - (libs/utils/wports.Logger).Info
+      - (libs/utils/wports.Logger).Warn
+      - (libs/utils/wports.Logger).Error
+      - (libs/utils/wports.Logger).Fatal
+      - (libs/utils/wports.Logger).Panic
+
+  revive:
+    rules:
+      # The recommended are from https://github.com/mgechev/revive#recommended-configuration
+      # The one  we like have each comment
+      # - name: add-constant
+      # - name: argument-limit
+      - name: atomic # under test
+      # - name: banned-characters
+      # - name: bare-return
+      - name: blank-imports # recommended
+      - name: bool-literal-in-expr # we like
+      # - name: call-to-gc
+      # - name: cognitive-complexity
+      # - name: comment-spacings
+      - name: confusing-naming # under test
+      - name: confusing-results # under test
+      - name: constant-logical-expr # we like
+      - name: context-as-argument # recommended
+      - name: context-keys-type # recommended
+      # - name: cyclomatic
+      - name: datarace # under test
+      # - name: deep-exit
+      # - name: defer
+      - name: dot-imports # recommended
+      # - name: duplicated-imports
+      - name: early-return # under test
+      - name: empty-block # under test
+      # - name: empty-lines
+      - name: errorf # recommended
+      - name: error-naming # recommended
+      - name: error-return # recommended
+      - name: error-strings # recommended
+      - name: exported # recommended
+      # - name: file-header
+      # - name: flag-parameter # TODO: Add on refactor. Seems useful https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#flag-parameter
+      # - name: function-length
+      - name: function-result-limit
+        arguments: [3]
+      # - name: get-return # under test
+      - name: identical-branches # under test
+      - name: if-return # recommended
+      # - name: imports-blacklist
+      - name: import-shadowing # under test
+      - name: increment-decrement # recommended
+      - name: indent-error-flow # recommended
+      # - name: line-length-limit
+      # - name: max-public-structs
+      - name: modifies-parameter # under test
+      - name: modifies-value-receiver # under test
+      - name: nested-structs # under test
+      - name: optimize-operands-order # under test
+      - name: package-comments # we like
+      - name: range # recommended
+      - name: range-val-address # under test
+      - name: range-val-in-closure # under test
+      - name: receiver-naming # recommended
+      - name: redefines-builtin-id # recommended
+      - name: string-format # we like
+        arguments:
+          - - 'logger.Debug'
+            - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
+            - must not start with a capital letter
+          - - 'logger.Info'
+            - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
+            - must not start with a capital letter
+          - - 'logger.Warn'
+            - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
+            - must not start with a capital letter
+          - - 'logger.Error'
+            - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
+            - must not start with a capital letter
+          - - 'logger.Fatal'
+            - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
+            - must not start with a capital letter
+          - - 'logger.Panic'
+            - '/^([^A-Z]|$)|(^|[^\.!?])$|^[^\n]*$/'
+            - must not start with a capital letter
+      - name: string-of-int # under test
+      - name: struct-tag # under test
+      - name: superfluous-else # recommended
+      - name: time-equal # under test
+      - name: time-naming # recommended
+      - name: unconditional-recursion # under test
+      - name: unexported-naming # we like
+      - name: unexported-return # recommended
+        # - name: unhandled-error # TODO: evaluate, I think its useful
+        arguments:
+          - file\.Close
+      - name: unnecessary-stmt # we like
+      - name: unreachable-code # recommended
+      - name: unused-parameter # under test
+      # - name: unused-receiver
+      - name: use-any # we like
+      - name: useless-break # we like
+      - name: var-declaration # recommended
+      - name: var-naming # recommended
+      - name: waitgroup-by-value # recommended
+
+  tagalign:
+    sort: false
