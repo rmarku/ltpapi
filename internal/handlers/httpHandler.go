@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/rmarku/ltp_api/internal/domain"
 )
 
@@ -22,7 +23,7 @@ func (h *HTTPHandlerImpl) Register() {
 }
 
 func (h *HTTPHandlerImpl) getLTP(c *gin.Context) {
-	price, err := h.ltpService.GetLastTradePrices()
+	price, err := h.ltpService.GetLastTradePrices("BTC/USD")
 	if err != nil {
 		slog.Error("Cannot get last trade price")
 		c.JSON(http.StatusInternalServerError, gin.H{

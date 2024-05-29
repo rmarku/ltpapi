@@ -2,31 +2,79 @@ package domain
 
 import (
 	"context"
+	"errors"
 
 	"github.com/rmarku/ltp_api/internal/datasources"
 	"github.com/rmarku/ltp_api/internal/entities"
+	"github.com/rmarku/ltp_api/internal/keyvalue"
 )
 
 type LastTradePriceImpl struct {
 	source datasources.DataSource
+	cache  keyvalue.FloatCache
 	pairs  []string
 }
 
 var _ LastTradePrice = new(LastTradePriceImpl)
 
-func NewLastTradePrice(source datasources.DataSource) *LastTradePriceImpl {
-
+func NewLastTradePrice(source datasources.DataSource, cache keyvalue.FloatCache) *LastTradePriceImpl {
 	return &LastTradePriceImpl{
 		pairs:  []string{"BTC/USD", "BTC/CHF", "BTC/EUR"},
 		source: source,
+		cache:  cache,
 	}
 }
+func (l *LastTradePriceImpl) GetAllLastTradePrices() ([]*entities.LTP, error) {
+	result := make([]*entities.LTP, 0, len(l.pairs))
 
-func (l *LastTradePriceImpl) GetLastTradePrices() (*entities.LTP, error) {
-	ret, err := l.source.GetData(context.TODO(), l.pairs[0])
-	if err != nil {
-		return nil, err
+	for _, pair := range l.pairs {
+		ret, err := l.GetLastTradePrices(pair)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, ret)
 	}
 
-	return ret, nil
+	return result, nil
+}
+
+func (l *LastTradePriceImpl) GetLastTradePrices(pair string) (*entities.LTP, error) {
+	amount, err := l.cache.Get(pair)
+	if err != nil {
+		if !errors.Is(err, keyvalue.ErrExpired) {
+			return nil, err
+		}
+
+		ret, err := l.source.GetData(context.TODO(), pair)
+		if err != nil {
+			return nil, err
+		}
+
+		err = l.cache.Set(pair, ret.Amount)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &entities.LTP{
+		Pair:   pair,
+		Amount: amount,
+	}, nil
+}
+
+func (l *LastTradePriceImpl) UpdatePrices() error {
+	for _, pair := range l.pairs {
+		ret, err := l.source.GetData(context.TODO(), pair)
+		if err != nil {
+			return err
+		}
+
+		err = l.cache.Set(pair, ret.Amount)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

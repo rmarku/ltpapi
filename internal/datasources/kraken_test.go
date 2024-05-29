@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/rmarku/ltp_api/internal/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/rmarku/ltp_api/internal/entities"
 )
 
 func TestGetData(t *testing.T) {
