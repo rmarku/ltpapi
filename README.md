@@ -17,13 +17,21 @@ LTPAPI_SERVER_PORT=:8888 go run .
 ## Testing
 
 The application has some unit tests, but also integration tests that test some common flows.
-For the unit test testify is used, for the integration test, testing containers is used.
+For the unit test I used [testify](https://github.com/stretchr/testify), for the integration test, testing containers is used.
 
 To run the unit tests:
 
 ```bash
 go test ./... -v
 ```
+
+### Integration Tests
+
+The UUT scope for integration testing is this entire service. I assume that
+this service is a module in a larger system, so the system or e2e tests would
+have as the UUT all the services working together. If the UUT for integration
+testing were the different modules of this service, a different approach would
+be used. A valid approach in this case would be to use httptest and direct gin router.
 
 To run the integration tests:
 
@@ -97,3 +105,4 @@ and the other to refresh each time the cache expire. Each mode has its pros and 
 - [ ] Get code estimates
 - [ ] Implement load test with k6
 - [ ] Implement pre-commits for better DX
+- [ ] Mock kraken API server for integration tests
