@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,27 +11,41 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 
+	"github.com/rmarku/ltp_api/internal/config"
 	"github.com/rmarku/ltp_api/internal/datasources"
 	"github.com/rmarku/ltp_api/internal/domain"
 	"github.com/rmarku/ltp_api/internal/handlers"
 	"github.com/rmarku/ltp_api/internal/keyvalue"
 )
 
+const (
+	ExitStatusCode1   = 1
+	ExitStatusCode2   = 2
+	TimeOutExit       = 10
+	TimeOutServer     = 5
+	SignalChannelSize = 2
+	ReadHeaderTimeout = 10
+)
+
 func main() {
-	// Global Context to close application
-	ctx, close := context.WithCancel(context.Background())
+	// Global Context to cancel application
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Initialize configuration
+	config.InitConfig()
 
 	// Initialize data source (secondary adapter)
 	kraken := datasources.NewKraken("https://api.kraken.com/0/public/Ticker")
-
 	cache := keyvalue.NewInMemory()
+
 	// Initialize services.
-
 	ltpService := domain.NewLastTradePrice(kraken, cache)
-	ltpService.UpdatePrices()
 
-	//go StartTicker(ctx, ltpService, time.Minute)
+	if viper.GetBool("ticker.enabled") { // Start ticker if enabled
+		StartTicker(ctx, ltpService, viper.GetDuration("ticker.timeout"))
+	}
 
 	// Initialize routes for primary adapters
 	router := gin.Default()
@@ -43,36 +56,74 @@ func main() {
 
 	apiHandler.Register()
 
-	// Start ticker to keep values updated
+	srv := startServer(router, viper.GetString("server.port"))
+
+	go gracefulShutDown(cancel)
+
+	<-ctx.Done()
+
+	stopServer(srv, TimeOutServer*time.Second)
+}
+
+func gracefulShutDown(cancel context.CancelFunc) {
+	// Wait for SIGTERM and SIGINT system signals
+	signalReceived := make(chan os.Signal, SignalChannelSize)
+	signal.Notify(signalReceived, syscall.SIGTERM, syscall.SIGINT)
+	slog.Debug("GracefulStopService waiting for system signals")
+
+	// Wait for signal to occur once
+	sig := <-signalReceived
+
+	slog.Info("caught sig. Started timeout for exit", "signal", sig.String())
+
+	// Inform application that we are closing
+	cancel()
+
+	// Wait prudent time for exit, if not send code error
+	go func() {
+		time.Sleep(TimeOutExit * time.Second)
+		slog.Error("time out in the shutdown procedure")
+		os.Exit(ExitStatusCode1)
+	}()
+
+	// Keep waiting second signal for forced shutdown
+	<-signalReceived
+
+	slog.Warn("two consecutive signals received, exiting now")
+
+	os.Exit(ExitStatusCode2)
+}
+
+func startServer(router *gin.Engine, port string) *http.Server {
+	// Add health check route
+	router.GET("/_healthz", func(c *gin.Context) {
+		c.String(http.StatusOK, "OK")
+	})
+
 	// Start server with graceful shutdown
 	srv := &http.Server{
-		Addr:    ":8081",
-		Handler: router,
+		Addr:              port,
+		Handler:           router,
+		ReadHeaderTimeout: ReadHeaderTimeout * time.Second,
 	}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("listen: %s\n", err)
+			slog.Error("server error", "err", err)
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	close()
-	log.Println("Shutdown Server ...")
+	return srv
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func stopServer(srv *http.Server, timeout time.Duration) {
+	slog.Info("Shutdown Server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server Shutdown:", err)
-	}
-
-	// controlando ctx.Done(). tiempo de espera de 5 segundos.
-	select {
-	case <-ctx.Done():
-		log.Println("timeout of 5 seconds.")
+		slog.Error("Server Shutdown", "err", err)
 	}
 }
 
@@ -82,7 +133,7 @@ func StartTicker(ctx context.Context, service domain.LastTradePrice, interval ti
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Shutdown Ticker ...")
+			slog.Info("Shutdown Ticker")
 
 			return
 		case <-ticker.C:

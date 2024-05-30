@@ -1,0 +1,27 @@
+name: Push Checks
+on:
+  push:
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏁 Check out code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Download Go
+        id: go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.1
+          cache-dependency-path: "**/go.sum"
+
+      - name: 🛍️ Get dependencies
+        run: go get -v -t -d ./... && go install gotest.tools/gotestsum@latest
+
+      - name: 🧪 Run tests
+        run: gotestsum -f github-actions -- -tags integration  ./...
+      
+      - name: 🔨 Build
+        run: go build .

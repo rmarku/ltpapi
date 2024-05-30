@@ -27,22 +27,22 @@ func TestGetData(t *testing.T) {
 	}{
 		{
 			name: "Successful response",
-			pair: "XBTUSD",
+			pair: "BTC/USD",
 			mockResponse: &http.Response{
 				StatusCode: http.StatusOK,
 				Body: io.NopCloser(
 					bytes.NewBufferString(`{
-						"result": {"XBTUSD": {"c": ["50000.0"]}},
+						"result": {"BTC/USD": {"c": ["50000.0"]}},
 						"error": []
 					}`),
 				),
 			},
-			expected:    &entities.LTP{Pair: "XBTUSD", Amount: 50000.0},
+			expected:    &entities.LTP{Pair: "BTC/USD", Amount: 50000.0},
 			expectError: false,
 		},
 		{
 			name: "Kraken returned error",
-			pair: "XBTUSD",
+			pair: "BTC/USD",
 			mockResponse: &http.Response{
 				StatusCode: http.StatusOK,
 				Body: io.NopCloser(
@@ -57,7 +57,7 @@ func TestGetData(t *testing.T) {
 		},
 		{
 			name: "Invalid JSON response",
-			pair: "XBTUSD",
+			pair: "BTC/USD",
 			mockResponse: &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       io.NopCloser(bytes.NewBufferString(`{invalid json}`)),
@@ -67,11 +67,26 @@ func TestGetData(t *testing.T) {
 		},
 		{
 			name: "HTTP client error",
-			pair: "XBTUSD",
+			pair: "BTC/USD",
 			mockResponse: &http.Response{
 				StatusCode: http.StatusInternalServerError,
 			},
 			mockError:   errors.New("HTTP client error"), //nolint: goerr113
+			expected:    nil,
+			expectError: true,
+		}, {
+			name: "Invalid Pair",
+			pair: "BTC/USD",
+			mockResponse: &http.Response{
+				StatusCode: http.StatusOK,
+				Body: io.NopCloser(
+					bytes.NewBufferString(`{
+						"result": {"WRONG": {"c": ["50000.0"]}},
+						"error": []
+					}`),
+				),
+			},
+			mockError:   ErrKrakenRequest,
 			expected:    nil,
 			expectError: true,
 		},

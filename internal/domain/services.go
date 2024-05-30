@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/spf13/viper"
+
 	"github.com/rmarku/ltp_api/internal/datasources"
 	"github.com/rmarku/ltp_api/internal/entities"
 	"github.com/rmarku/ltp_api/internal/keyvalue"
@@ -18,12 +20,23 @@ type LastTradePriceImpl struct {
 var _ LastTradePrice = new(LastTradePriceImpl)
 
 func NewLastTradePrice(source datasources.DataSource, cache keyvalue.FloatCache) *LastTradePriceImpl {
-	return &LastTradePriceImpl{
-		pairs:  []string{"BTC/USD", "BTC/CHF", "BTC/EUR"},
+	pairs := viper.GetStringSlice("available_pairs")
+
+	ltp := &LastTradePriceImpl{
+		pairs:  pairs,
 		source: source,
 		cache:  cache,
 	}
+
+	ltp.UpdatePrices()
+
+	return ltp
 }
+
+func (l *LastTradePriceImpl) GetPairs() []string {
+	return l.pairs
+}
+
 func (l *LastTradePriceImpl) GetAllLastTradePrices() ([]*entities.LTP, error) {
 	result := make([]*entities.LTP, 0, len(l.pairs))
 
@@ -55,6 +68,8 @@ func (l *LastTradePriceImpl) GetLastTradePrices(pair string) (*entities.LTP, err
 		if err != nil {
 			return nil, err
 		}
+
+		amount = ret.Amount
 	}
 
 	return &entities.LTP{

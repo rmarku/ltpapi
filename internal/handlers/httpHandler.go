@@ -3,10 +3,12 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/rmarku/ltp_api/internal/domain"
+	"github.com/rmarku/ltp_api/internal/entities"
 )
 
 var _ HTTPHandler = new(HTTPHandlerImpl)
@@ -23,18 +25,34 @@ func (h *HTTPHandlerImpl) Register() {
 }
 
 func (h *HTTPHandlerImpl) getLTP(c *gin.Context) {
-	price, err := h.ltpService.GetLastTradePrices("BTC/USD")
-	if err != nil {
-		slog.Error("Cannot get last trade price")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   err.Error(),
-			"message": "Cannot get last trade price",
-		})
-		return
+	var prices []entities.LTP //nolint: prealloc
+
+	var pairs []string
+
+	query := c.Query("pairs")
+
+	if query != "" {
+		pairs = strings.Split(query, ",")
+	} else {
+		pairs = h.ltpService.GetPairs()
+	}
+
+	for _, pair := range pairs {
+		price, err := h.ltpService.GetLastTradePrices(pair)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Cannot get last trade price",
+			})
+
+			slog.Error("Cannot get last trade price", "err", err)
+
+			return
+		}
+
+		prices = append(prices, *price)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"price":  price,
-		"status": "ok",
+		"ltp": prices,
 	})
 }
